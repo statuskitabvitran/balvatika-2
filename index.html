@@ -139,6 +139,57 @@
   .panel{display:none;padding-top:24px}
   .panel.active{display:block}
 
+  /* ---------- Reports module ---------- */
+  .rtabs{display:flex;gap:4px;margin:22px 0 0;border-bottom:1px solid var(--line)}
+  .rtab{
+    appearance:none;background:none;border:none;font-family:var(--sans);font-size:13.5px;font-weight:600;
+    color:var(--ink-soft);padding:12px 16px;cursor:pointer;position:relative;border-radius:8px 8px 0 0;
+  }
+  .rtab:hover{color:var(--ink)}
+  .rtab.active{color:var(--ink)}
+  .rtab.active::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2.5px;background:var(--spine);border-radius:2px}
+  .rpanel{display:none;padding-top:22px}
+  .rpanel.active{display:block}
+  .rwarn{
+    display:flex;gap:11px;align-items:flex-start;background:#FBF3EC;border:1px solid #F0DEC9;color:#7A4E0A;
+    border-radius:11px;padding:12px 15px;font-size:12.5px;margin-bottom:16px;line-height:1.5;
+  }
+  .rwarn b{color:#5E3B06}
+  .rwarn.ok{background:#EAF4F1;border-color:#CFE5E0;color:#1F5A52}
+  .rwarn.ok b{color:#0A5C53}
+  .bandkey{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .bk{
+    display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);
+    border-radius:9px;padding:7px 12px;font-size:12px;box-shadow:var(--shadow);color:var(--ink-soft);
+  }
+  .bk i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 10px}
+  .bk b{font-family:var(--mono);font-size:13.5px;color:var(--ink)}
+  .rtable td{white-space:normal;vertical-align:top;text-align:center}
+  .rtable thead th{cursor:default;text-align:center}
+  .rtable thead th.col-dist,.rtable thead th.col-block{text-align:left}
+  .rtable td.col-dist,.rtable td.col-block{text-align:left;vertical-align:top}
+  .rtable td.col-block{font-family:var(--sans);font-weight:500;font-size:12.5px;min-width:150px}
+  .rt-count{
+    font-family:var(--mono);font-weight:700;font-size:13px;border-radius:6px;padding:3px 10px;
+    display:inline-block;min-width:36px;text-align:center;
+  }
+  .c-b100{background:#D8EDE1;color:#14532D}
+  .c-b80{background:#E7F3EC;color:#1F6B43}
+  .c-b50{background:#FBF1DC;color:#8A5A0E}
+  .c-blow{background:#FBE3E3;color:#A12C2C}
+  .c-none{background:#F1D6D6;color:#7A1F1F}
+  .c-zero{background:#F1EFEA;color:#A8AEB7}
+  .nl{
+    font-size:11px;line-height:1.45;color:var(--ink-soft);margin-top:6px;text-align:left;
+    max-width:32ch;font-family:var(--sans);
+  }
+  .rtable.hidenames .nl{display:none}
+  .rcolh{min-width:190px}
+  .rtable.hidenames .rcolh{min-width:96px}
+  .switch{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;user-select:none}
+  .switch input{accent-color:var(--spine);width:15px;height:15px;cursor:pointer}
+  tr.rtot td{font-weight:700;background:#FBFAF7 !important;border-top:1px solid var(--line)}
+
   /* ---------- Hero shelf (overall fill) ---------- */
   .hero{
     background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow);
@@ -398,6 +449,7 @@
     <button class="modbtn active" data-mod="district" role="tab">District <span class="mn">75</span></button>
     <button class="modbtn" data-mod="block" role="tab">Block <span class="mn">881</span></button>
     <button class="modbtn" data-mod="school" role="tab">School <span class="mn">71,877</span></button>
+    <button class="modbtn" data-mod="reports" role="tab">Reports</button>
   </nav>
 
 
@@ -556,6 +608,55 @@
     <button class="btn" id="exportBtnSchool" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Excel</button>
   </div>
   <div class="tablewrap" id="schoolTableWrap"><div class="lazy">Pick a district above to list its schools.</div></div>
+</div>
+
+
+<div id="mod-reports" class="module">
+  <p class="modnote">Two coverage summaries built from the same figures as the Block and School screens. A unit&rsquo;s
+  percentage is <b>books received &divide; books targeted</b> across all nine titles. <b>Never scanned</b> means no scan
+  record was matched at all &mdash; blocks are matched on block code (falling back to name), schools on UDISE code. A unit
+  that did scan but reported zero books counts as 0% and sits in the lowest band, not in &ldquo;never scanned&rdquo;.
+  Bands are exclusive, so the buckets always add up to the total.</p>
+
+  <nav class="rtabs" role="tablist">
+    <button class="rtab active" data-rtab="rblock" role="tab">Block-wise by district</button>
+    <button class="rtab" data-rtab="rschool" role="tab">School-wise by block</button>
+  </nav>
+
+  <!-- Block-wise -->
+  <section class="rpanel active" id="rpanel-rblock" role="tabpanel">
+    <div id="rbWarn"></div>
+    <div class="controls">
+      <div class="selectfield"><label>District</label><select id="rbDistSel"></select></div>
+      <label class="switch"><input type="checkbox" id="rbNames" checked> Show block names</label>
+      <div class="spacer"></div>
+      <button class="btn" id="rbExport" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Excel
+      </button>
+    </div>
+    <div class="bandkey" id="rbKey"></div>
+    <div class="tablewrap" id="rbWrap"><div class="lazy"><div class="sp"></div>Preparing report&hellip;</div></div>
+  </section>
+
+  <!-- School-wise -->
+  <section class="rpanel" id="rpanel-rschool" role="tabpanel">
+    <div id="rsWarn"></div>
+    <div class="controls">
+      <div class="selectfield"><label>District</label><select id="rsDistSel"></select></div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="rsSearch" placeholder="Search block or code&hellip;">
+      </div>
+      <div class="spacer"></div>
+      <button class="btn" id="rsExport" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Excel
+      </button>
+    </div>
+    <div class="bandkey" id="rsKey"></div>
+    <div class="tablewrap" id="rsWrap"><div class="lazy"><div class="sp"></div>Preparing report&hellip;</div></div>
+  </section>
 </div>
 
 
@@ -1970,8 +2071,8 @@ async function fetchModuleSheet(prefix, quiet){
     const text=await res.text();
     if(/^\s*</.test(text)) throw new Error("The sheet isn’t publicly readable — Share → “Anyone with the link · Viewer”.");
     const rows=parseCSV(text);
-    if(prefix==="Block"){ STATE_BLOCK=ingestBlockSheet(rows); renderBlock(); showModMatch("Block",STATE_BLOCK); }
-    else { STATE_SCHOOL=ingestSchoolSheet(rows); renderSchool(); showModMatch("School",STATE_SCHOOL); }
+    if(prefix==="Block"){ STATE_BLOCK=ingestBlockSheet(rows); renderBlock(); refreshReports(); showModMatch("Block",STATE_BLOCK); }
+    else { STATE_SCHOOL=ingestSchoolSheet(rows); renderSchool(); refreshReports(); showModMatch("School",STATE_SCHOOL); }
     c.last=new Date(); srcUI(prefix,"live");
   }catch(err){
     const cors=/Failed to fetch|NetworkError|CORS/i.test(err.message);
@@ -2042,10 +2143,314 @@ function exportModuleCSV(prefix){
   }
 }
 
+
+/* ================= Reports: coverage analysis =================
+   Two summaries built from the same numbers the Block and School screens use.
+   A unit's percentage is books received / books targeted across all nine titles.
+   Bands are mutually exclusive and always sum to the total.
+   "Never scanned" means no scan record matched at all (block by code, falling back
+   to name; school by UDISE). A unit that scanned but reported zero books is 0%
+   and lands in the lowest band, not in "never scanned". */
+const RBANDS = [
+  {key:"b100", label:"100% and above", cls:"c-b100", sw:"#3F8F63", fill:{bg:"FFD8EDE1",fg:"FF14532D"}},
+  {key:"b80",  label:"80\u201399.9%",  cls:"c-b80",  sw:"#7DBF9B", fill:{bg:"FFE7F3EC",fg:"FF1F6B43"}},
+  {key:"b50",  label:"50\u201379.9%",  cls:"c-b50",  sw:"#D9A83C", fill:{bg:"FFFBF1DC",fg:"FF8A5A0E"}},
+  {key:"blow", label:"Below 50%",      cls:"c-blow", sw:"#C86C6C", fill:{bg:"FFFBE3E3",fg:"FFA12C2C"}},
+  {key:"none", label:"Never scanned",  cls:"c-none", sw:"#8E2020", fill:{bg:"FFF1D6D6",fg:"FF7A1F1F"}}
+];
+const SBANDS = [
+  {key:"s80",  label:"80% and above",  cls:"c-b80",  sw:"#3F8F63", fill:{bg:"FFE7F3EC",fg:"FF1F6B43"}},
+  {key:"s50",  label:"50\u201379.9%",  cls:"c-b50",  sw:"#D9A83C", fill:{bg:"FFFBF1DC",fg:"FF8A5A0E"}},
+  {key:"slow", label:"Below 50%",      cls:"c-blow", sw:"#C86C6C", fill:{bg:"FFFBE3E3",fg:"FFA12C2C"}},
+  {key:"none", label:"Never scanned",  cls:"c-none", sw:"#8E2020", fill:{bg:"FFF1D6D6",fg:"FF7A1F1F"}}
+];
+let rbDist="all", rsDist="all", rsQ="";
+
+/* ---- classification ---- */
+function scanPct(tot, r){
+  const tt=sumTot(tot), rr=CSV_KEY_ORDER.reduce((s,k)=>s+(r[k]||0),0);
+  return tt ? rr/tt*100 : (rr>0?100:0);
+}
+function isPresent(r){ return !!(r && CSV_KEY_ORDER.some(k=>r[k]!=null)); }
+function blockBand(dname, b){
+  const r = STATE_BLOCK ? blockRecv(dname,b) : null;
+  if(!isPresent(r)) return "none";
+  const p=scanPct(b.tot,r);
+  return p>=100?"b100":p>=80?"b80":p>=50?"b50":"blow";
+}
+function schoolBand(srow){
+  const r = STATE_SCHOOL ? schoolRecv(srow[3]) : null;
+  if(!isPresent(r)) return "none";
+  const p=scanPct(rowTargetObj(srow),r);
+  return p>=80?"s80":p>=50?"s50":"slow";
+}
+
+/* ---- builders ---- */
+function buildBlockReport(scope){
+  const out=[];
+  [...DIST_MAP.keys()].sort().forEach(dn=>{
+    if(scope!=="all" && dn!==scope) return;
+    const d=DIST_MAP.get(dn);
+    const g={b100:[],b80:[],b50:[],blow:[],none:[]};
+    sortedBlocks(d).forEach(b=>{ g[blockBand(dn,b)].push(b.name); });
+    out.push({dist:dn, total:d.blocks.size, g:g});
+  });
+  return out;
+}
+function buildSchoolReport(scope, q){
+  const out=[]; q=(q||"").toLowerCase();
+  [...DIST_MAP.keys()].sort().forEach(dn=>{
+    if(scope!=="all" && dn!==scope) return;
+    const d=DIST_MAP.get(dn);
+    sortedBlocks(d).forEach(b=>{
+      if(q && !(b.name.toLowerCase().includes(q) || String(b.code).toLowerCase().includes(q))) return;
+      const c={s80:0,s50:0,slow:0,none:0};
+      b.idx.forEach(ix=>{ c[schoolBand(SCHOOL_ROWS[ix])]++; });
+      out.push({dist:dn, block:b.name, code:b.code, schools:b.schools, c:c});
+    });
+  });
+  return out;
+}
+
+/* ---- source banner ---- */
+function rSrcNote(id, prefix, state){
+  const el=document.getElementById(id); if(!el) return;
+  const unit = prefix==="Block" ? "block" : "school";
+  if(!state){
+    el.innerHTML='<div class="rwarn"><span><b>No '+unit+'-scan sheet is connected yet.</b> '
+      +'Until one is, every '+unit+' below is counted as never scanned. Connect it on the '
+      +(prefix==="Block"?"Block":"School")+' screen &mdash; this report reads exactly the same source.</span></div>';
+  } else {
+    const t=CONN[prefix].last ? " \u00b7 last read "+fmtTime(CONN[prefix].last) : "";
+    el.innerHTML='<div class="rwarn ok"><span><b>Reading the '+unit+'-scan sheet.</b> '
+      +fmt(state.count)+' '+unit+'s matched \u00b7 '+state.matched.length+'/9 title columns'+t+'.</span></div>';
+  }
+}
+function keyChips(bands, tot, leadN, leadLabel){
+  return '<span class="bk"><b>'+fmt(leadN)+'</b> '+leadLabel+'</span>'
+    + bands.map(b=>'<span class="bk"><i style="background:'+b.sw+'"></i><b>'+fmt(tot[b.key])+'</b> '+b.label+'</span>').join("");
+}
+
+/* ---- render: block-wise ---- */
+function renderRB(){
+  if(!dataReady) return;
+  rSrcNote("rbWarn","Block",STATE_BLOCK);
+  const rows=buildBlockReport(rbDist);
+  const tot={}; RBANDS.forEach(b=>tot[b.key]=0);
+  let tb=0;
+  rows.forEach(r=>{ tb+=r.total; RBANDS.forEach(b=>tot[b.key]+=r.g[b.key].length); });
+  document.getElementById("rbKey").innerHTML=keyChips(RBANDS,tot,tb,"blocks");
+
+  const showNames=document.getElementById("rbNames").checked;
+  let head='<tr><th class="col-dist">District</th><th>Blocks</th>'
+    + RBANDS.map(b=>'<th class="rcolh">'+b.label+'</th>').join("") + '</tr>';
+  let body="";
+  rows.forEach(r=>{
+    let tds='<td class="col-dist">'+escHtml(r.dist)+'</td><td><span class="rt-count c-zero" style="color:var(--ink)">'+r.total+'</span></td>';
+    RBANDS.forEach(b=>{
+      const a=r.g[b.key];
+      tds+='<td class="rcolh"><span class="rt-count '+(a.length?b.cls:"c-zero")+'">'+a.length+'</span>'
+         + (a.length?'<div class="nl">'+escHtml(a.join(", "))+'</div>':'') + '</td>';
+    });
+    body+='<tr>'+tds+'</tr>';
+  });
+  let ttds='<td class="col-dist">Total \u2014 '+rows.length+' districts</td><td><span class="rt-count c-zero" style="color:var(--ink)">'+fmt(tb)+'</span></td>';
+  RBANDS.forEach(b=>{ ttds+='<td class="rcolh"><span class="rt-count '+(tot[b.key]?b.cls:"c-zero")+'">'+fmt(tot[b.key])+'</span></td>'; });
+  const totRow='<tr class="rtot">'+ttds+'</tr>';
+
+  document.getElementById("rbWrap").innerHTML = rows.length
+    ? '<table class="rtable'+(showNames?"":" hidenames")+'"><thead>'+head+'</thead><tbody>'+body+totRow+'</tbody></table>'
+    : '<div class="empty-state">No districts in scope.</div>';
+}
+
+/* ---- render: school-wise ---- */
+function renderRS(){
+  if(!dataReady) return;
+  rSrcNote("rsWarn","School",STATE_SCHOOL);
+  const rows=buildSchoolReport(rsDist,rsQ);
+  const tot={}; SBANDS.forEach(b=>tot[b.key]=0);
+  let ts=0;
+  rows.forEach(r=>{ ts+=r.schools; SBANDS.forEach(b=>tot[b.key]+=r.c[b.key]); });
+  document.getElementById("rsKey").innerHTML=keyChips(SBANDS,tot,ts,"schools in "+fmt(rows.length)+" blocks");
+
+  let head='<tr><th class="col-dist">District</th><th class="col-block">Block</th><th>Schools</th>'
+    + SBANDS.map(b=>'<th>'+b.label+'</th>').join("") + '</tr>';
+  let body="";
+  rows.forEach(r=>{
+    let tds='<td class="col-dist">'+escHtml(r.dist)+'</td>'
+      +'<td class="col-block">'+escHtml(r.block)+'<span class="bcode">'+escHtml(r.code)+'</span></td>'
+      +'<td><span class="rt-count c-zero" style="color:var(--ink)">'+fmt(r.schools)+'</span></td>';
+    SBANDS.forEach(b=>{
+      const n=r.c[b.key];
+      tds+='<td><span class="rt-count '+(n?b.cls:"c-zero")+'">'+fmt(n)+'</span></td>';
+    });
+    body+='<tr>'+tds+'</tr>';
+  });
+  let ttds='<td class="col-dist">Total</td><td class="col-block">'+fmt(rows.length)+' blocks</td>'
+    +'<td><span class="rt-count c-zero" style="color:var(--ink)">'+fmt(ts)+'</span></td>';
+  SBANDS.forEach(b=>{ ttds+='<td><span class="rt-count '+(tot[b.key]?b.cls:"c-zero")+'">'+fmt(tot[b.key])+'</span></td>'; });
+  const totRow='<tr class="rtot">'+ttds+'</tr>';
+
+  document.getElementById("rsWrap").innerHTML = rows.length
+    ? '<table class="rtable"><thead>'+head+'</thead><tbody>'+body+totRow+'</tbody></table>'
+    : '<div class="empty-state">No blocks match.</div>';
+}
+
+/* ---- Excel helpers (multi-sheet, on top of the existing styled export) ---- */
+function xlHead(v){
+  return {v:v,t:"s",s:{font:{bold:true,color:{rgb:"FF1A2233"}},
+    fill:{patternType:"solid",fgColor:{rgb:"FFF1EFE9"}},
+    alignment:{horizontal:"center",vertical:"center",wrapText:true}}};
+}
+function xlNum(n,fill,bold){
+  const c={v:n,t:"n",s:{alignment:{horizontal:"center",vertical:"top"}}};
+  if(fill && n>0){ c.s.fill={patternType:"solid",fgColor:{rgb:fill.bg}}; c.s.font={color:{rgb:fill.fg},bold:true}; }
+  else if(bold){ c.s.font={bold:true}; }
+  return c;
+}
+function xlNames(s){ return {v:s,t:"s",s:{alignment:{wrapText:true,vertical:"top"},font:{sz:9,color:{rgb:"FF5B6472"}}}}; }
+function xlText(s,bold){ const c={v:s,t:"s",s:{alignment:{vertical:"top"}}}; if(bold) c.s.font={bold:true}; return c; }
+function saveStyledWorkbook(sheets, filename){
+  const wb=XLSX.utils.book_new();
+  sheets.forEach(s=>{
+    const ws=XLSX.utils.aoa_to_sheet(s.aoa);
+    ws["!cols"]=s.cols||colWidths(s.aoa);
+    if(s.freeze!==false){
+      ws["!freeze"]={xSplit:s.xSplit||0,ySplit:1};
+      if(s.aoa.length>1) ws["!autofilter"]={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:s.aoa.length-2,c:s.aoa[0].length-1}})};
+    }
+    XLSX.utils.book_append_sheet(wb, ws, s.name);
+  });
+  XLSX.writeFile(wb, filename);
+}
+function notesSheet(kind, bandLines, connected, matchedCount){
+  const rows=[
+    ["Kitab Vitran \u2014 "+kind+" coverage report"],
+    [""],
+    ["Generated", new Date().toLocaleString()],
+    ["Scope", (kind.indexOf("Block")===0 ? (rbDist==="all"?"All 75 districts":rbDist) : (rsDist==="all"?"All 75 districts":rsDist))],
+    ["Scan sheet", connected ? (fmt(matchedCount)+" units matched from the connected Google Sheet") : "NOT CONNECTED \u2014 every unit is reported as never scanned"],
+    [""],
+    ["HOW A UNIT IS SCORED"],
+    ["Percentage", "Books received divided by books targeted, summed across all nine titles."],
+    ["Targets", "UDISE work order dated 27 July 2026 \u2014 71,877 schools, 881 blocks, 75 districts."],
+    ["Matching", kind.indexOf("Block")===0
+        ? "Blocks match on block code; where one code covers several blocks (e.g. Lucknow 4910) the block name is used instead."
+        : "Schools match on UDISE code."],
+    [""],
+    ["BANDS \u2014 mutually exclusive, and they add up to the total"]
+  ];
+  bandLines.forEach(l=>rows.push(l));
+  rows.push([""]);
+  rows.push(["Never scanned", "No scan record matched at all. A unit that did scan but reported zero books counts as 0% and sits in the lowest band instead."]);
+  rows.push(["Over 100%", "Received exceeding target is left as reported, not capped \u2014 it usually points to a double scan or a data-entry slip worth checking."]);
+  return {name:"Notes", aoa:rows, cols:[{wch:22},{wch:104}], freeze:false};
+}
+
+/* ---- exports ---- */
+function exportRB(){
+  const rows=buildBlockReport(rbDist);
+  const head=[xlHead("District"), xlHead("Total blocks")];
+  RBANDS.forEach(b=>{ head.push(xlHead("# blocks "+b.label), xlHead("Blocks "+b.label)); });
+  const aoa=[head];
+  const tot={}; RBANDS.forEach(b=>tot[b.key]=0); let tb=0;
+  rows.forEach(r=>{
+    const row=[xlText(r.dist,true), xlNum(r.total,null,true)];
+    RBANDS.forEach(b=>{
+      const a=r.g[b.key]; tot[b.key]+=a.length;
+      row.push(xlNum(a.length,b.fill), xlNames(a.join(", ")));
+    });
+    tb+=r.total; aoa.push(row);
+  });
+  const trow=[xlText("TOTAL",true), xlNum(tb,null,true)];
+  RBANDS.forEach(b=>{ trow.push(xlNum(tot[b.key],b.fill), xlText("")); });
+  aoa.push(trow);
+
+  const cols=[{wch:20},{wch:12}];
+  RBANDS.forEach(()=>{ cols.push({wch:13},{wch:52}); });
+  const notes=notesSheet("Block-wise",[
+    ["100% and above","Received is at least equal to target."],
+    ["80\u201399.9%","At least 80% but short of the full target."],
+    ["50\u201379.9%","At least half, below 80%."],
+    ["Below 50%","Less than half of target received (includes blocks that scanned and reported zero)."]
+  ], !!STATE_BLOCK, STATE_BLOCK?STATE_BLOCK.count:0);
+  const suffix = rbDist==="all" ? "" : "_"+rbDist.replace(/\s+/g,"_");
+  saveStyledWorkbook([{name:"Block-wise", aoa:aoa, cols:cols}, notes],
+                     "kitab_vitran_block_analysis"+suffix+".xlsx");
+}
+function exportRS(){
+  const rows=buildSchoolReport(rsDist,rsQ);
+  const head=[xlHead("District"), xlHead("Block"), xlHead("Block code"), xlHead("Total schools")];
+  SBANDS.forEach(b=>head.push(xlHead("# schools "+b.label)));
+  const aoa=[head];
+  const tot={}; SBANDS.forEach(b=>tot[b.key]=0); let ts=0;
+  rows.forEach(r=>{
+    const row=[xlText(r.dist,true), xlText(r.block), xlText(String(r.code||"")), xlNum(r.schools,null,true)];
+    SBANDS.forEach(b=>{ tot[b.key]+=r.c[b.key]; row.push(xlNum(r.c[b.key],b.fill)); });
+    ts+=r.schools; aoa.push(row);
+  });
+  const trow=[xlText("TOTAL",true), xlText(rows.length+" blocks",true), xlText(""), xlNum(ts,null,true)];
+  SBANDS.forEach(b=>trow.push(xlNum(tot[b.key],b.fill)));
+  aoa.push(trow);
+
+  const cols=[{wch:20},{wch:26},{wch:11},{wch:13}];
+  SBANDS.forEach(()=>cols.push({wch:17}));
+  const notes=notesSheet("School-wise",[
+    ["80% and above","Received is at least 80% of target."],
+    ["50\u201379.9%","At least half, below 80%."],
+    ["Below 50%","Less than half of target received (includes schools that scanned and reported zero)."]
+  ], !!STATE_SCHOOL, STATE_SCHOOL?STATE_SCHOOL.count:0);
+  const suffix = rsDist==="all" ? "" : "_"+rsDist.replace(/\s+/g,"_");
+  saveStyledWorkbook([{name:"School-wise", aoa:aoa, cols:cols}, notes],
+                     "kitab_vitran_school_analysis"+suffix+".xlsx");
+}
+
+/* ---- open + refresh ---- */
+function fillReportDistSels(){
+  const names=[...DIST_MAP.keys()].sort();
+  const opts='<option value="all">All districts</option>'+names.map(n=>'<option>'+escHtml(n)+'</option>').join("");
+  const a=document.getElementById("rbDistSel"), b=document.getElementById("rsDistSel");
+  a.innerHTML=opts; a.value=rbDist;
+  b.innerHTML=opts; b.value=rsDist;
+}
+function renderReports(){ renderRB(); renderRS(); }
+function refreshReports(){
+  const m=document.getElementById("mod-reports");
+  if(m && m.classList.contains("active") && dataReady) renderReports();
+}
+async function openReports(){
+  const ok=await ensureData();
+  if(!ok){
+    document.getElementById("rbWrap").innerHTML='<div class="empty-state">This browser couldn\u2019t decode the embedded school data. Try a recent Chrome, Edge, Firefox or Safari.</div>';
+    document.getElementById("rsWrap").innerHTML='<div class="empty-state">This browser couldn\u2019t decode the embedded school data.</div>';
+    return;
+  }
+  if(!document.getElementById("rbDistSel").options.length) fillReportDistSels();
+  /* the reports read the same two sheets as the Block and School screens \u2014 connect them if untouched */
+  if(!blockTried){ blockTried=true; const v=(document.getElementById("sheetUrlBlock").value||"").trim(); if(v && !STATE_BLOCK) connectModule("Block",v); }
+  if(!schoolTried){ schoolTried=true; const v=(document.getElementById("sheetUrlSchool").value||"").trim(); if(v && !STATE_SCHOOL) connectModule("School",v); }
+  renderReports();
+}
+
+/* ---- wiring ---- */
+document.querySelectorAll(".rtab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".rtab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".rpanel").forEach(p=>p.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById("rpanel-"+t.dataset.rtab).classList.add("active");
+}));
+document.getElementById("rbDistSel").addEventListener("change",e=>{ rbDist=e.target.value; renderRB(); });
+document.getElementById("rbNames").addEventListener("change",renderRB);
+document.getElementById("rbExport").addEventListener("click",exportRB);
+document.getElementById("rsDistSel").addEventListener("change",e=>{ rsDist=e.target.value; renderRS(); });
+document.getElementById("rsSearch").addEventListener("input",e=>{ rsQ=e.target.value.trim(); clearTimeout(window.__rsq); window.__rsq=setTimeout(renderRS,140); });
+document.getElementById("rsExport").addEventListener("click",exportRS);
+
 /* ---- module switching ---- */
 async function switchModule(mod){
   document.querySelectorAll(".modbtn").forEach(b=>b.classList.toggle("active", b.dataset.mod===mod));
   document.querySelectorAll(".module").forEach(m=>m.classList.toggle("active", m.id==="mod-"+mod));
+  if(mod==="reports"){ await openReports(); }
   if(mod==="block" || mod==="school"){
     const ok=await ensureData();
     if(!ok){ const id=mod==="block"?"blockTableWrap":"schoolTableWrap"; document.getElementById(id).innerHTML='<div class="empty-state">This browser couldn’t decode the embedded school data. Try a recent Chrome, Edge, Firefox or Safari.</div>'; return; }
@@ -2073,7 +2478,7 @@ document.getElementById("connectBtnBlock").addEventListener("click",()=>connectM
 document.getElementById("sheetUrlBlock").addEventListener("keydown",e=>{ if(e.key==="Enter") connectModule("Block",document.getElementById("sheetUrlBlock").value); });
 document.getElementById("refreshBtnBlock").addEventListener("click",()=>fetchModuleSheet("Block",false));
 document.getElementById("browseBtnBlock").addEventListener("click",()=>document.getElementById("fileInputBlock").click());
-document.getElementById("fileInputBlock").addEventListener("change",e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=ev=>{ try{ STATE_BLOCK=ingestBlockSheet(parseCSV(ev.target.result)); renderBlock(); showModMatch("Block",STATE_BLOCK); srcUI("Block","idle"); }catch(err){ srcUI("Block","err",err.message); } }; rd.readAsText(f); });
+document.getElementById("fileInputBlock").addEventListener("change",e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=ev=>{ try{ STATE_BLOCK=ingestBlockSheet(parseCSV(ev.target.result)); renderBlock(); refreshReports(); showModMatch("Block",STATE_BLOCK); srcUI("Block","idle"); }catch(err){ srcUI("Block","err",err.message); } }; rd.readAsText(f); });
 document.getElementById("exportBtnBlock").addEventListener("click",()=>exportModuleCSV("Block"));
 
 document.getElementById("schoolDistSel").addEventListener("change",e=>{ schoolDist=e.target.value; schoolBlk="all"; fillSchoolBlkSel(); renderSchool(); });
@@ -2083,7 +2488,7 @@ document.getElementById("connectBtnSchool").addEventListener("click",()=>connect
 document.getElementById("sheetUrlSchool").addEventListener("keydown",e=>{ if(e.key==="Enter") connectModule("School",document.getElementById("sheetUrlSchool").value); });
 document.getElementById("refreshBtnSchool").addEventListener("click",()=>fetchModuleSheet("School",false));
 document.getElementById("browseBtnSchool").addEventListener("click",()=>document.getElementById("fileInputSchool").click());
-document.getElementById("fileInputSchool").addEventListener("change",e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=ev=>{ try{ STATE_SCHOOL=ingestSchoolSheet(parseCSV(ev.target.result)); renderSchool(); showModMatch("School",STATE_SCHOOL); srcUI("School","idle"); }catch(err){ srcUI("School","err",err.message); } }; rd.readAsText(f); });
+document.getElementById("fileInputSchool").addEventListener("change",e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=ev=>{ try{ STATE_SCHOOL=ingestSchoolSheet(parseCSV(ev.target.result)); renderSchool(); refreshReports(); showModMatch("School",STATE_SCHOOL); srcUI("School","idle"); }catch(err){ srcUI("School","err",err.message); } }; rd.readAsText(f); });
 document.getElementById("exportBtnSchool").addEventListener("click",()=>exportModuleCSV("School"));
 
 /* preload saved block/school sheet links (connect happens lazily on first open) */
