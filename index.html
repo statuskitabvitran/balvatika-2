@@ -2773,10 +2773,24 @@ function renderStateReport(){
 }
 
 /* ---------- Excel export ---------- */
+/* Percentage cell for the .xlsx: above 80% green, 50-80% yellow, below 50% red.
+   Reuses BAND_FILL so the workbook matches the dashboard's own tints. */
+function srPctXl(v, live, bold){
+  if(!live) return { v:"", t:"s", s:{ alignment:{ horizontal:"center" } } };
+  const n = Math.round(v*10)/10;
+  const b = n>80 ? BAND_FILL.green : n>=50 ? BAND_FILL.yellow : BAND_FILL.red;
+  return { v:n, t:"n", s:{
+    numFmt:'0.0"%"',
+    fill:{ patternType:"solid", fgColor:{ rgb:b.bg } },
+    font:{ color:{ rgb:b.fg }, bold:!!bold },
+    alignment:{ horizontal:"center", vertical:"top" },
+    border: bold ? { top:{ style:"thin", color:{ rgb:"FFBFBAAE" } } } : undefined
+  }};
+}
+
 function exportStateReport(){
   const rows=srView();
   const liveD=!!STATE, liveB=!!STATE_BLOCK, liveS=!!STATE_SCHOOL;
-  const pct=(v,live)=> live? Math.round(v*10)/10 : "";
 
   const aoa=[[
     xlHead("District"),
@@ -2790,12 +2804,12 @@ function exportStateReport(){
   rows.forEach(r=>{
     aoa.push([
       xlText(r.name,true),
-      xlNum(liveD?r.dRec:""), xlNum(r.dTgt), xlNum(pct(r.dPct,liveD)),
+      xlNum(liveD?r.dRec:""), xlNum(r.dTgt), srPctXl(r.dPct, liveD),
       xlNum(liveD?r.miss.length:""), xlNames(liveD?r.miss.join(", "):""),
-      xlNum(r.hasGeo?r.blocks:""), xlNum(liveB&&r.hasGeo?r.bStarted:""), xlNum(pct(r.bStartPct, liveB&&r.hasGeo)),
-      xlNum(liveB&&r.hasGeo?r.bRec:""), xlNum(r.hasGeo?r.bTgt:""), xlNum(pct(r.bPct, liveB&&r.hasGeo)),
-      xlNum(r.hasGeo?r.schools:""), xlNum(liveS&&r.hasGeo?r.sStarted:""), xlNum(pct(r.sStartPct, liveS&&r.hasGeo)),
-      xlNum(liveS&&r.hasGeo?r.sRec:""), xlNum(r.hasGeo?r.sTgt:""), xlNum(pct(r.sPct, liveS&&r.hasGeo))
+      xlNum(r.hasGeo?r.blocks:""), xlNum(liveB&&r.hasGeo?r.bStarted:""), srPctXl(r.bStartPct, liveB&&r.hasGeo),
+      xlNum(liveB&&r.hasGeo?r.bRec:""), xlNum(r.hasGeo?r.bTgt:""), srPctXl(r.bPct, liveB&&r.hasGeo),
+      xlNum(r.hasGeo?r.schools:""), xlNum(liveS&&r.hasGeo?r.sStarted:""), srPctXl(r.sStartPct, liveS&&r.hasGeo),
+      xlNum(liveS&&r.hasGeo?r.sRec:""), xlNum(r.hasGeo?r.sTgt:""), srPctXl(r.sPct, liveS&&r.hasGeo)
     ]);
   });
   const T=rows.reduce((a,r)=>({
@@ -2805,12 +2819,12 @@ function exportStateReport(){
   }),{dTgt:0,dRec:0,miss:0,blocks:0,bStarted:0,bTgt:0,bRec:0,schools:0,sStarted:0,sTgt:0,sRec:0});
   aoa.push([
     xlText("TOTAL \u2014 "+rows.length+" districts",true),
-    xlNum(liveD?T.dRec:"",null,true), xlNum(T.dTgt,null,true), xlNum(pct(T.dTgt?T.dRec/T.dTgt*100:0,liveD),null,true),
+    xlNum(liveD?T.dRec:"",null,true), xlNum(T.dTgt,null,true), srPctXl(T.dTgt?T.dRec/T.dTgt*100:0, liveD, true),
     xlNum(liveD?T.miss:"",null,true), xlNames(""),
-    xlNum(T.blocks,null,true), xlNum(liveB?T.bStarted:"",null,true), xlNum(pct(T.blocks?T.bStarted/T.blocks*100:0,liveB),null,true),
-    xlNum(liveB?T.bRec:"",null,true), xlNum(T.bTgt,null,true), xlNum(pct(T.bTgt?T.bRec/T.bTgt*100:0,liveB),null,true),
-    xlNum(T.schools,null,true), xlNum(liveS?T.sStarted:"",null,true), xlNum(pct(T.schools?T.sStarted/T.schools*100:0,liveS),null,true),
-    xlNum(liveS?T.sRec:"",null,true), xlNum(T.sTgt,null,true), xlNum(pct(T.sTgt?T.sRec/T.sTgt*100:0,liveS),null,true)
+    xlNum(T.blocks,null,true), xlNum(liveB?T.bStarted:"",null,true), srPctXl(T.blocks?T.bStarted/T.blocks*100:0, liveB, true),
+    xlNum(liveB?T.bRec:"",null,true), xlNum(T.bTgt,null,true), srPctXl(T.bTgt?T.bRec/T.bTgt*100:0, liveB, true),
+    xlNum(T.schools,null,true), xlNum(liveS?T.sStarted:"",null,true), srPctXl(T.schools?T.sStarted/T.schools*100:0, liveS, true),
+    xlNum(liveS?T.sRec:"",null,true), xlNum(T.sTgt,null,true), srPctXl(T.sTgt?T.sRec/T.sTgt*100:0, liveS, true)
   ]);
 
   const cols=[{wch:22},{wch:15},{wch:15},{wch:15},{wch:14},{wch:46},
@@ -2831,6 +2845,11 @@ function exportStateReport(){
     [xlText("Blocks / schools started %"), xlText("Share of blocks or schools that reported at least one book. A unit that scanned and reported zero is not counted as started.")],
     [xlText("Block \u2014 scans vs target %"), xlText("Books received across all blocks of the district, divided by the blocks' combined target. Block-scan sheet, matched on block code (falling back to name).")],
     [xlText("School \u2014 scans vs target %"), xlText("Books received across all schools of the district, divided by the schools' combined target. School-scan sheet, matched on UDISE code.")],
+    [""],
+    [xlText("Colour key",true), xlText("Applied to every percentage column",true)],
+    [srPctXl(92.4,true), xlText("Above 80% \u2014 green")],
+    [srPctXl(64.8,true), xlText("50% to 80% \u2014 yellow")],
+    [srPctXl(21.3,true), xlText("Below 50% \u2014 red (a district with no scans reads 0.0%)")],
     [""],
     [xlText("Sources connected",true)],
     [xlText("District scans"), xlText(liveD?"Connected":"Not connected \u2014 those columns are blank")],
